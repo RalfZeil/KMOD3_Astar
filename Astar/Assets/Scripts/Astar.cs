@@ -1,7 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using System.Linq;
 
 public class Astar
 {
@@ -15,6 +14,8 @@ public class Astar
     /// <returns></returns>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
+        int WhileTries = 0;
+
         List<Vector2Int> path = new List<Vector2Int>();
 
         List<Node> openList = new List<Node>();
@@ -26,8 +27,16 @@ public class Astar
         //initialize the end and start node
         openList.Add(startNode);
 
-        while(openList.Count != 0)
+        while(openList.Count != 0 && WhileTries < 10000)
         {
+            WhileTries++;
+
+            // Check if the endnode had been found
+            if (endNode != null)
+            {
+                break;
+            }
+
             Node lowestFNode = null;
 
             //Get the node with the lowest F value
@@ -39,78 +48,67 @@ public class Astar
                 }
             }
 
-            openList.Remove(lowestFNode);
-            closedList.Add(lowestFNode);
-
+            List<Cell> neighbourCells = grid[lowestFNode.position.x, lowestFNode.position.y].GetNeighbours(grid);  
             List<Node> neighbourNodes = new List<Node>();
             List<Node> newNeighbourNodes = new List<Node>();
 
             // Make nodes from the given cells
-            foreach (Cell cell in GetNeighbouringCells(lowestFNode, grid))
+            foreach (Cell cell in neighbourCells)
             {
-                neighbourNodes.Add(new Node(
+                if (cell.gridPosition.y > lowestFNode.position.y && cell.HasWall(Wall.DOWN)) { continue; }
+                if (cell.gridPosition.y < lowestFNode.position.y && cell.HasWall(Wall.UP)) { continue; }
+                if (cell.gridPosition.x > lowestFNode.position.x && cell.HasWall(Wall.LEFT)) { continue; }
+                if (cell.gridPosition.x < lowestFNode.position.x && cell.HasWall(Wall.RIGHT)) { continue; }
+
+                Node neighbourNode = new Node(
                     cell.gridPosition,
-                    lowestFNode,
+                    lowestFNode, // Set parent to be the current node
                     lowestFNode.GScore + 1,
                     Vector2Int.Distance(cell.gridPosition, endPos)
-                    ));
+                );
+
+                neighbourNodes.Add(neighbourNode);
             }
 
             // Filter nodes that already exist in open list with lower F value
             foreach (Node node in neighbourNodes)
             {
-                foreach(Node openNode in openList)
+                if (closedList.Contains(node)) { continue; }
+
+                if (openList.Contains(node))
                 {
-                    if(node.position == openNode.position)
+                    if (node.FScore > openList[openList.IndexOf(node)].FScore)
                     {
-                        if(node.FScore > openNode.FScore)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            newNeighbourNodes.Add(node); ;
-                        }
+                        continue;
+                    }
+                    else
+                    {
+                        openList[openList.IndexOf(node)] = node;
+                        newNeighbourNodes.Add(node);
                     }
                 }
-
-                foreach (Node closedNode in closedList)
+                else
                 {
-                    if (node.position == closedNode.position)
-                    {
-                        if (node.FScore > closedNode.FScore)
-                        {
-                            continue;
-                        }
-                        else if (!newNeighbourNodes.Contains(node))
-                        {
-                            newNeighbourNodes.Add(node);
-                        }
-                    }
-                }
-
                     openList.Add(node);
-                
+                    newNeighbourNodes.Add(node);
+                }
             }
 
             // Check each neighbouring Node
             foreach (Node neighbour in newNeighbourNodes)
             {
-                neighbour.parent = lowestFNode;
-
                 if (neighbour.position == endPos) 
                 {
                     endNode = neighbour;
                     break; 
                 }
+
+                neighbour.parent = lowestFNode;
             }
 
-            // Check if the endnode had been found
-            if(endNode != null)
-            {
-                break;
-            }
-        } // End While loop
+            openList.Remove(lowestFNode);
+            closedList.Add(lowestFNode);
+        } 
 
         // Collect the path into a list
         Node currentNode = endNode;
@@ -123,35 +121,6 @@ public class Astar
         
         return path;
     }
-
-    List<Cell> GetNeighbouringCells(Node node, Cell[,] grid)
-    {
-        List<Cell> neighbours = new List<Cell>();
-
-        // North
-        if (node.position.y + 1 < grid.GetLength(1))
-        {
-            neighbours.Add(grid[node.position.x, node.position.y + 1]);
-        }
-        // East
-        if (node.position.x + 1 < grid.GetLength(0))
-        {
-            neighbours.Add(grid[node.position.x + 1, node.position.y]);
-        }
-        // South
-        if (node.position.y - 1 >= 0)
-        {
-            neighbours.Add(grid[node.position.x, node.position.y - 1]);
-        }
-        // West
-        if (node.position.x - 1 >= 0)
-        {
-            neighbours.Add(grid[node.position.x - 1, node.position.y]);
-        }
-
-        return neighbours;
-    }
-
 
     /// <summary>
     /// This is the Node class you can use this class to store calculated FScores for the cells of the grid, you can leave this as it is

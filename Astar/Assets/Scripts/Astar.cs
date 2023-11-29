@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class Astar
@@ -75,16 +74,18 @@ public class Astar
             {
                 if (closedList.Contains(node)) { continue; }
 
-                if (openList.Contains(node))
+                Node existingNode = openList.Find(n => n.position == node.position);
+                if (existingNode != null)
                 {
-                    if (node.FScore > openList[openList.IndexOf(node)].FScore)
+                    if (node.GScore >= existingNode.GScore)
                     {
-                        continue;
+                        continue; // If the new path is not better, skip
                     }
                     else
                     {
-                        openList[openList.IndexOf(node)] = node;
-                        newNeighbourNodes.Add(node);
+                        // If the new path is better, update the existing node
+                        existingNode.parent = node.parent;
+                        existingNode.GScore = node.GScore;
                     }
                 }
                 else

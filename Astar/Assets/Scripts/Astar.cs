@@ -13,8 +13,6 @@ public class Astar
     /// <returns></returns>
     public List<Vector2Int> FindPathToTarget(Vector2Int startPos, Vector2Int endPos, Cell[,] grid)
     {
-        int WhileTries = 0;
-
         List<Vector2Int> path = new List<Vector2Int>();
 
         List<Node> openList = new List<Node>();
@@ -26,9 +24,8 @@ public class Astar
         //initialize the end and start node
         openList.Add(startNode);
 
-        while(openList.Count != 0 && WhileTries < 10000)
+        while(openList.Count != 0)
         {
-            WhileTries++;
 
             // Check if the endnode had been found
             if (endNode != null)
